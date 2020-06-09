@@ -1,13 +1,28 @@
 from django import forms
-from django.core.validators import RegexValidator, MaxValueValidator, MinValueValidator
+from django.core.validators import RegexValidator
+from django.core.exceptions import ValidationError
+from .models import Pixel
 
-WIDTH = 20
-HEIGHT = 20
 
+class PixelForm(forms.ModelForm):
+    def clean(self):
+        cleaned_data = super().clean()
+        rect = cleaned_data.get("rect")
 
-class PixelForm(forms.Form):
-    x = forms.IntegerField(required=True, validators=[MaxValueValidator(WIDTH), MinValueValidator(1)])
-    y = forms.IntegerField(required=True, validators=[MaxValueValidator(HEIGHT), MinValueValidator(1)])
+        if not rect:
+            raise ValidationError('invalid rectangle')
+
+        x = cleaned_data.get("x")
+        y = cleaned_data.get("y")
+
+        if not (0 < x <= rect.width) or not (0 < y <= rect.height):
+            raise ValidationError('invalid coords')
+
+        return cleaned_data
+
+    class Meta:
+        model = Pixel
+        exclude = ['color']
 
 
 class PixelPOSTForm(PixelForm):
