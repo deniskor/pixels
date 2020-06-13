@@ -1,7 +1,7 @@
 from django import forms
-from django.core.validators import RegexValidator
+from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
-from .models import Pixel
+from .models import Pixel, Rectangle
 
 
 class PixelForm(forms.ModelForm):
@@ -28,3 +28,12 @@ class PixelForm(forms.ModelForm):
 class PixelPOSTForm(PixelForm):
     color = forms.CharField(max_length=6, required=True,
                             validators=[RegexValidator(r'^[0-9a-fA-F]{6}$')])
+
+
+class RectangleForm(forms.ModelForm):
+    width = forms.IntegerField(validators=[MaxValueValidator(1000), MinValueValidator(10)])
+    height = forms.IntegerField(validators=[MaxValueValidator(1000), MinValueValidator(10)])
+
+    class Meta:
+        model = Rectangle
+        fields = '__all__'

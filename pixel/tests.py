@@ -16,20 +16,20 @@ class PixelViewTestCase(TestCase):
     # ----------- GET ------------
     def test_get_pixel_success(self):
         response = json.dumps({'result': 'ok',
-                                'rect': self.pixel.rect.id,
-                                'x': self.pixel.x,
-                                'y': self.pixel.y,
-                                'color': self.pixel.color})
+                               'rect': self.pixel.rect.id,
+                               'x': self.pixel.x,
+                               'y': self.pixel.y,
+                               'color': self.pixel.color})
 
         resp = self.client.get('', {'rect': '1', 'x': '1', 'y': '1'})
         self.assertEqual(resp.content, response.encode('utf-8'))
 
     def test_get_pixel_default_color_success(self):
         response = json.dumps({'result': 'ok',
-                                'rect': 1,
-                                'x': 1,
-                                'y': 10,
-                                'color': 'ffffff'})
+                               'rect': 1,
+                               'x': 1,
+                               'y': 10,
+                               'color': 'ffffff'})
 
         resp = self.client.get('', {'rect': '1', 'x': '1', 'y': '10', 'color': 'ffffff'})
         self.assertEqual(resp.content, response.encode('utf-8'))
@@ -42,7 +42,7 @@ class PixelViewTestCase(TestCase):
         self.assertEqual(resp.content, response.encode('utf-8'))
 
         # More than HEIGHT
-        resp = self.client.get('', {'rect': '1', 'x': '1', 'y': f'{self.rect.height+10}'})
+        resp = self.client.get('', {'rect': '1', 'x': '1', 'y': f'{self.rect.height + 10}'})
         self.assertEqual(resp.content, response.encode('utf-8'))
 
         # Rect doesn't exist
@@ -53,19 +53,19 @@ class PixelViewTestCase(TestCase):
     def test_set_color_success(self):
         resp = self.client.post('', {'rect': '1', 'x': '2', 'y': '2', 'color': 'bbbbbb'})
         response = json.dumps({'result': 'ok', 'msg': 'pixel created',
-                                'pixel': {'rect': 1,
-                                          'x': 2,
-                                          'y': 2,
-                                          'color': 'bbbbbb'}})
+                               'pixel': {'rect': 1,
+                                         'x': 2,
+                                         'y': 2,
+                                         'color': 'bbbbbb'}})
         self.assertEqual(resp.content, response.encode('utf-8'))
 
     def test_set_color_updated(self):
         resp = self.client.post('', {'rect': '1', 'x': '1', 'y': '1', 'color': 'bbbbbb'})
         response = json.dumps({'result': 'ok', 'msg': 'pixel updated',
-                                'pixel': {'rect': 1,
-                                          'x': 1,
-                                          'y': 1,
-                                          'color': 'bbbbbb'}})
+                               'pixel': {'rect': 1,
+                                         'x': 1,
+                                         'y': 1,
+                                         'color': 'bbbbbb'}})
 
         self.assertEqual(resp.content, response.encode('utf-8'))
 
@@ -77,7 +77,7 @@ class PixelViewTestCase(TestCase):
         self.assertEqual(resp.content, response.encode('utf-8'))
 
         # More than 20
-        resp = self.client.post('', {'rect': '1', 'x': '0', 'y': f'{self.rect.height+10}', 'color': 'aaaaaa'})
+        resp = self.client.post('', {'rect': '1', 'x': '0', 'y': f'{self.rect.height + 10}', 'color': 'aaaaaa'})
         self.assertEqual(resp.content, response.encode('utf-8'))
 
         # Without color
@@ -113,7 +113,7 @@ class PixelViewTestCase(TestCase):
         self.assertEqual(resp.content, response.encode('utf-8'))
 
         # More than height
-        resp = self.client.delete('', json.dumps({'rect': '1', 'x': '1', 'y': f'{self.rect.height+10}'}))
+        resp = self.client.delete('', json.dumps({'rect': '1', 'x': '1', 'y': f'{self.rect.height + 10}'}))
         self.assertEqual(resp.content, response.encode('utf-8'))
 
         # Rect doesn't exist
@@ -124,3 +124,62 @@ class PixelViewTestCase(TestCase):
         resp = self.client.delete('', json.dumps({'rect': '1', 'x': '2', 'y': '1'}))
         json_data = json.dumps({'result': 'error', 'msg': 'nothing to delete'})
         self.assertEqual(resp.content, json_data.encode('utf-8'))
+
+    #
+    # Rectangle
+    #
+    def test_get_rectangle_list_success(self):
+        resp = self.client.get('/rects/')
+        json_data = [{'id': r.id,
+                      'width': r.width,
+                      'height': r.height,
+                      'pixels': Pixel.objects.filter(rect_id=r.id).count()} for r in Rectangle.objects.all()]
+
+        json_data = json.dumps({'result': 'ok', 'rects': json.dumps(json_data)})
+        self.assertEqual(resp.content, json_data.encode('utf-8'))
+
+    def test_get_rectangle_retrieve_success(self):
+        resp = self.client.get('/rects/1')
+        json_data = json.dumps({'id': self.rect.id,
+                                'width': self.rect.width,
+                                'height': self.rect.height,
+                                'pixels': Pixel.objects.filter(
+                                    rect_id=self.rect.id).count()})
+
+        json_data = json.dumps({'result': 'ok', 'rect_data': json_data})
+        self.assertEqual(resp.content, json_data.encode('utf-8'))
+
+    def test_get_rectangle_retrieve_not_created(self):
+        resp = self.client.get('/rects/10')
+        response = json.dumps({'result': 'error', 'msg': 'invalid data'})
+        self.assertEqual(resp.content, response.encode('utf-8'))
+
+    def test_delete_rectangle_success(self):
+        resp = self.client.delete('/rects/1')
+        json_data = json.dumps({'result': 'ok', 'msg': 'rectangle deleted'})
+        self.assertEqual(resp.content, json_data.encode('utf-8'))
+
+    def test_delete_rectangle_nothing_to_delete(self):
+        resp = self.client.delete('/rects/10')
+        json_data = json.dumps({'result': 'error', 'msg': 'nothing to delete'})
+        self.assertEqual(resp.content, json_data.encode('utf-8'))
+
+    def test_delete_rectangle_no_rect_id(self):
+        resp = self.client.delete('/rects/')
+        response = json.dumps({'result': 'error', 'msg': 'invalid data'})
+        self.assertEqual(resp.content, response.encode('utf-8'))
+
+    def test_post_rectangle_success(self):
+        resp = self.client.post('/rects/', {'width': '10', 'height': '10'})
+        response = json.dumps({'result': 'ok', 'msg': 'rectangle created',
+                               'rect': {'id': 2, 'width': 10, 'height': 10}})
+        self.assertEqual(resp.content, response.encode('utf-8'))
+
+    def test_delete_rectangle_invalid_data(self):
+        resp = self.client.post('/rects/')
+        response = json.dumps({'result': 'error', 'msg': 'invalid data'})
+        self.assertEqual(resp.content, response.encode('utf-8'))
+
+        resp = self.client.post('/rects/', {'width': '100000', 'height': '10'})
+        response = json.dumps({'result': 'error', 'msg': 'invalid data'})
+        self.assertEqual(resp.content, response.encode('utf-8'))
